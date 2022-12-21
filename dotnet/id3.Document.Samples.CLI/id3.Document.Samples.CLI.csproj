@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="id3.Document">
+      <HintPath>..\..\sdk\dotnet\id3.Document.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="if not exist &quot;$(TargetDir)bin&quot; mkdir &quot;$(TargetDir)bin&quot;&#xA;if not exist &quot;$(TargetDir)bin\x64&quot; mkdir &quot;$(TargetDir)bin\x64&quot;&#xA;if not exist &quot;$(TargetDir)bin\x86&quot; mkdir &quot;$(TargetDir)bin\x86&quot;&#xA;&#xA;copy &quot;$(SolutionDir)..\sdk\bin\windows\x64\*.dll&quot; &quot;$(TargetDir)bin\x64\&quot;&#xA;copy &quot;$(SolutionDir)..\sdk\bin\windows\x86\*.dll&quot; &quot;$(TargetDir)bin\x86\&quot;&#xA;" />
+  </Target>
+
+</Project>

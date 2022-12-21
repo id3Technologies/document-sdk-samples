@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OpenCvSharp4" Version="4.6.0.20220608" />
+    <PackageReference Include="OpenCvSharp4.Extensions" Version="4.6.0.20220608" />
+    <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.6.0.20220608" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="id3.Document">
+      <HintPath>..\..\sdk\dotnet\id3.Document.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<Exec Command="if not exist &quot;$(TargetDir)bin&quot; mkdir &quot;$(TargetDir)bin&quot;&#xA;if not exist &quot;$(TargetDir)bin\x64&quot; mkdir &quot;$(TargetDir)bin\x64&quot;&#xA;if not exist &quot;$(TargetDir)bin\x86&quot; mkdir &quot;$(TargetDir)bin\x86&quot;&#xA;&#xA;copy &quot;$(SolutionDir)..\sdk\bin\windows\x64\*.dll&quot; &quot;$(TargetDir)bin\x64\&quot;&#xA;copy &quot;$(SolutionDir)..\sdk\bin\windows\x86\*.dll&quot; &quot;$(TargetDir)bin\x86\&quot;&#xA;" />
+	</Target>
+</Project>
