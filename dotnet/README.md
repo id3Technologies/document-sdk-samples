@@ -24,6 +24,6 @@ Also, for the Windows Form projects, references to **OpenCvSharp** and **OpenCvS
 
 Before to build any of the .NET samples, you need to fill in the path to your license in the source code. Look for the following line in **Program.cs** or **Form1.cs** and replace expression 'your_license_path_here' with your correct path.
 
-    DocumentLibrary.CheckLicense(@"your_license_path_here");
+    DocumentLicense.CheckLicense(@"your_license_path_here");
 
 Once everything is ready, you can now build the samples and launch them.

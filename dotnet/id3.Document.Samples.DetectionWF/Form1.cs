@@ -1,23 +1,13 @@
-
-using System;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.Drawing;
-using System.IO;
-using System.Threading;
-using System.Windows.Forms;
-
 using OpenCvSharp;
 using OpenCvSharp.Extensions;
-
-
-
+using System.ComponentModel;
+using System.Diagnostics;
 
 namespace id3.Document.Samples.DetectionWF
 {
-    using System.Runtime.InteropServices;
     using id3.Document;
-
+    using System.Data;
+    using System.Runtime.InteropServices;
 
     public partial class Form1 : Form
     {
@@ -40,17 +30,17 @@ namespace id3.Document.Samples.DetectionWF
         VideoCapture capture;
         bool isCameraRunning = false;
         ImagesToDraw imagesToDraw;
+        int cameraIndex = 0;
 
         /*
          * Parameters
          */
-        string document_name = "alb_id";
-        int detectionThreshold = 24;
+        int detectionThreshold = 100;
 
         /*
          * id3Document SDK objects.
          */
-        Image image;
+        DocumentImage image;
 
         DocumentDetector documentDetector;
 
@@ -79,7 +69,7 @@ namespace id3.Document.Samples.DetectionWF
             camera.DoWork += Camera_DoWork;
             camera.ProgressChanged += Camera_ProgressChanged;
             camera.RunWorkerCompleted += Camera_RunWorkerCompleted;
-            imagesToDraw= new ImagesToDraw();
+            imagesToDraw = new ImagesToDraw();
 
             // id3 Document SDK objects
             try
@@ -88,7 +78,7 @@ namespace id3.Document.Samples.DetectionWF
                  * Before calling any function of the SDK you must first check a valid license file.
                  * To get such a file please use the provided activation tool.
                  */
-                DocumentLibrary.CheckLicense(@"your_license_path_here");
+                DocumentLicense.CheckLicense(@"../../../../../id3Document.lic");
             }
             catch (DocumentException ex)
             {
@@ -98,19 +88,19 @@ namespace id3.Document.Samples.DetectionWF
 
             /*
              * The Document SDK heavily relies on deep learning technics and hence requires trained models to run.
-             * It also relies on document reference files for each model and each document type it might need to process.
-             * Fill in the correct path to the downloaded models and the document references.
+             * It also relies on document template files for each model and each document type it might need to process.
+             * Fill in the correct path to the downloaded models and the document template.
              */
 
-            string modelPath = "..\\..\\..\\..\\..\\sdk\\models";
-            string documentReferencesPath = "..\\..\\..\\..\\..\\sdk\\document_references";
+            string modelPath = "../../../../../sdk/models";
+            string documentTemplatesPath = @"../../../../../sdk/document_templates";
             try
             {
                 /*
-                 * Once a model and a document reference is loaded in the desired processing unit (CPU or GPU) several instances of the associated processor can be created.
+                 * Once a model and a document template is loaded in the desired processing unit (CPU or GPU) several instances of the associated processor can be created.
                  */
-                DocumentLibrary.LoadModel(modelPath, DocumentModel.DocumentDetector1B, ProcessingUnit.Cpu);
-                DocumentLibrary.LoadReferenceDocument(documentReferencesPath, "alb_id_detection_1b_1.0.0.0");
+                DocumentLibrary.LoadModel(modelPath, DocumentModel.DocumentDetector2B, ProcessingUnit.Cpu);
+                DocumentLibrary.LoadDocumentTemplate(Path.Combine(documentTemplatesPath, "ALB_BO_01001_detector_2B_2.2.0.0.id3dr"));
 
                 /*
                  * Initialize an instance of document detector that will run on the CPU.
@@ -121,13 +111,11 @@ namespace id3.Document.Samples.DetectionWF
                  */
                 documentDetector = new DocumentDetector()
                 {
-                    Model = DocumentModel.DocumentDetector1B,
+                    Model = DocumentModel.DocumentDetector2B,
                     ProcessingUnit = ProcessingUnit.Cpu,
                     DocumentWidthRatio = 1f,
                     ThreadCount = 1
                 };
-
-
             }
             catch (DocumentException ex)
             {
@@ -152,13 +140,11 @@ namespace id3.Document.Samples.DetectionWF
             {
                 StartCaptureCamera();
                 buttonStartCapture.Text = "Stop capture";
-
             }
             else
             {
                 StopCaptureCamera();
                 buttonStartCapture.Text = "Start capture";
-
             }
         }
 
@@ -167,8 +153,7 @@ namespace id3.Document.Samples.DetectionWF
         {
             Mat frame = new Mat();
             capture = new VideoCapture(0);
-            capture.Open(0);
-
+            capture.Open(cameraIndex);
 
             if (capture.IsOpened())
             {
@@ -180,13 +165,13 @@ namespace id3.Document.Samples.DetectionWF
                     // Create image from the first frame
                     byte[] pixels = new byte[3 * frame.Width * frame.Height];
                     Marshal.Copy(frame.Data, pixels, 0, 3 * frame.Width * frame.Height);
-                    image = Image.FromRawBuffer(pixels, frame.Width, frame.Height, 3 * frame.Width, PixelFormat.Bgr24Bits, PixelFormat.Bgr24Bits);
+                    image = DocumentImage.FromRawBuffer(pixels, frame.Width, frame.Height, 3 * frame.Width, PixelFormat.Bgr24Bits, PixelFormat.Bgr24Bits);
 
                     /*
-                      * To speed up the algorithm, you can optionally define a detection rectangle zone in the image.
-                      * Make sure the coordinates of the 4 points make a straight rectangle.
-                      * If you don't want to restrict a zone, replace the coordinates by the default struct value :
-                      *  Rectangle detectionZone = new Rectangle();
+                     * To speed up the algorithm, you can optionally define a detection rectangle zone in the image.
+                     * Make sure the coordinates of the 4 points make a straight rectangle.
+                     * If you don't want to restrict a zone, replace the coordinates by the default struct value :
+                     *  Rectangle detectionZone = Rectangle.From...();
                      */
 
                     int bw = bitmap.Width * 2 / 3;
@@ -195,76 +180,72 @@ namespace id3.Document.Samples.DetectionWF
                     int bx = bitmap.Width / 2 - bw / 2;
                     int by = bitmap.Height / 2 - bh / 2;
 
-                    Point tl = new Point(bx, by);
-                    Point tr = new Point(bx + bw, by);
-                    Point bl = new Point(bx, by + bh);
-                    Point br = new Point(bx + bw, by + bh);
-                    Rectangle rectangle = new Rectangle(bl, br, tl, tr);
+                    Rectangle rectangle = Rectangle.FromXywh(bx, by, bw, bh);
 
                     using (Graphics gr = Graphics.FromImage(bitmap))
                     {
                         gr.DrawRectangle(new Pen(Color.Blue, 2), ConvertRectangle(rectangle));
                     }
 
-
-
-
                     // Add preview for UI/process
                     imagesToDraw.BitmapPreview = bitmap;
-
 
                     Stopwatch stopWatch = Stopwatch.StartNew();
 
                     // Detect document of a known type
-                    var detectedDocument = documentDetector.DetectDocument(image, document_name, rectangle);
+                    StringList subset = new StringList();
+                    var detectedDocument = documentDetector.DetectDocument(image, rectangle, subset);
 
-                    //Check detection score
-                    if (detectedDocument.DetectionScore > detectionThreshold)
+                    // Check detection score
+                    if (detectedDocument.Confidence > detectionThreshold)
                     {
-
                         // ...draw results
-                        using (Graphics gr = Graphics.FromImage(imagesToDraw.BitmapPreview))
+                        PointList bounds = detectedDocument.Bounds;
+                        if (bounds != null && bounds.Count >= 4)
                         {
-                            System.Drawing.Point[] ptList =
+                            using (Graphics gr = Graphics.FromImage(imagesToDraw.BitmapPreview))
                             {
-                                ConvertPoint(detectedDocument.Bounds.Get(0)),
-                                ConvertPoint(detectedDocument.Bounds.Get(1)),
-                                ConvertPoint(detectedDocument.Bounds.Get(2)),
-                                ConvertPoint(detectedDocument.Bounds.Get(3))
+                                System.Drawing.Point[] ptList =
+                                {
+                                ConvertPoint(bounds.Get(0)),
+                                ConvertPoint(bounds.Get(1)),
+                                ConvertPoint(bounds.Get(2)),
+                                ConvertPoint(bounds.Get(3))
 
                             };
-                            gr.DrawPolygon(new Pen(Color.Green, 2), ptList);
+                                gr.DrawPolygon(new Pen(Color.Green, 2), ptList);
+                            }
                         }
+
                         // Align document
                         var alignedImage = documentDetector.AlignDocument(image, detectedDocument);
 
-
-
                         // Draw result
-                        float ratio = 300f / alignedImage.GetWidth();
+                        float ratio = 300f / alignedImage.Width;
                         alignedImage.Resize(300, 190);
                         using (MemoryStream memStream = new MemoryStream(alignedImage.ToBuffer(ImageFormat.Jpeg, 0)))
                         {
                             imagesToDraw.ImageAligned = System.Drawing.Image.FromStream(memStream);
                         }
-
                     }
 
                     long trackTime = stopWatch.ElapsedMilliseconds;
 
-
                     WorkerProgress workerProgress = new WorkerProgress()
                     {
                         TrackTime = trackTime,
-                        DetectionScore = detectedDocument.DetectionScore
+                        DetectionScore = detectedDocument.Confidence
                     };
 
                     camera.ReportProgress(0, workerProgress);
+
+                    // Release native memory
+                    image.Dispose();
                 }
             }
         }
         
-        //Update UI after each detection
+        // Update UI after each detection
         private void Camera_ProgressChanged(object sender, ProgressChangedEventArgs e)
         {
             WorkerProgress workerProgress = (WorkerProgress)e.UserState;
@@ -273,7 +254,6 @@ namespace id3.Document.Samples.DetectionWF
 
             labelDetectionTime.Text = string.Format("Detection time: {0} ms", workerProgress.TrackTime);
             labelDetectionScore.Text = String.Format("Detection score : {0}", workerProgress.DetectionScore);
-
         }
 
         private void Camera_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
@@ -286,7 +266,7 @@ namespace id3.Document.Samples.DetectionWF
         private bool IsCameraPlugged()
         {
             capture = new VideoCapture(0);
-            bool ret = capture.Open(0);
+            bool ret = capture.Open(cameraIndex);
             if (ret)
             {
                 capture.Release();
@@ -310,7 +290,6 @@ namespace id3.Document.Samples.DetectionWF
             }
         }
 
-
         private System.Drawing.Rectangle ConvertRectangle(Rectangle rectangle)
         {
             return new System.Drawing.Rectangle(rectangle.TopLeft.X,
@@ -327,7 +306,5 @@ namespace id3.Document.Samples.DetectionWF
         {
             return new System.Drawing.Point(pt.X, pt.Y);
         }
-
-
     }
 }

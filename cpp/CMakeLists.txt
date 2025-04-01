@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.5)
 
 project(id3DocumentSdkCppSamples)
 
@@ -31,4 +31,4 @@ target_link_libraries(id3DocumentSampleCLI id3Document)
 postBuildCopyDirectory(id3DocumentSampleCLI $<TARGET_FILE_DIR:id3DocumentSampleCLI> ${LINK_DIR})
 postBuildCopyDirectory(id3DocumentSampleCLI $<TARGET_FILE_DIR:id3DocumentSampleCLI>/data ${CMAKE_CURRENT_LIST_DIR}/../data)
 postBuildCopyDirectory(id3DocumentSampleCLI $<TARGET_FILE_DIR:id3DocumentSampleCLI>/models ${CMAKE_CURRENT_LIST_DIR}/../sdk/models)
-postBuildCopyDirectory(id3DocumentSampleCLI $<TARGET_FILE_DIR:id3DocumentSampleCLI>/document_references ${CMAKE_CURRENT_LIST_DIR}/../sdk/document_references)
+postBuildCopyDirectory(id3DocumentSampleCLI $<TARGET_FILE_DIR:id3DocumentSampleCLI>/document_templates ${CMAKE_CURRENT_LIST_DIR}/../sdk/document_templates)

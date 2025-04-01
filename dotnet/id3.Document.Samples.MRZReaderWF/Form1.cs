@@ -1,21 +1,12 @@
-using System;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.Drawing;
-using System.IO;
-using System.Threading;
-using System.Windows.Forms;
-
 using OpenCvSharp;
 using OpenCvSharp.Extensions;
-
-
-
+using System.ComponentModel;
+using System.Diagnostics;
 
 namespace id3.Document.Samples.MRZReaderWF
 {
-    using System.Runtime.InteropServices;
     using id3.Document;
+    using System.Runtime.InteropServices;
 
     public partial class Form1 : Form
     {
@@ -30,16 +21,16 @@ namespace id3.Document.Samples.MRZReaderWF
 
         }
 
-
         Bitmap[] bitmapBuffer; 
         BackgroundWorker camera;
         VideoCapture capture;
         bool isCameraRunning = false;
+        int cameraIndex = 0;
 
         /*
          * id3Document SDK objects.
         */
-        Image image;
+        DocumentImage image;
 
         MrzReader mrzReader;
         bool isTemplateEnrolled = false;
@@ -80,7 +71,7 @@ namespace id3.Document.Samples.MRZReaderWF
                  * Before calling any function of the SDK you must first check a valid license file.
                  * To get such a file please use the provided activation tool.
                  */
-                DocumentLibrary.CheckLicense(@"your_license_path_here");
+                DocumentLicense.CheckLicense(@"../../../../../id3Document.lic");
             }
             catch (DocumentException ex)
             {
@@ -92,15 +83,14 @@ namespace id3.Document.Samples.MRZReaderWF
              * The Document SDK heavily relies on deep learning technics and hence requires trained models to run.
              * Fill in the correct path to the downloaded models.
              */
-            string modelPath = "..\\..\\..\\..\\..\\sdk\\models";
+            string modelPath = "../../../../../sdk/models";
 
             try
             {
                 /*
-                * Once a model is loaded in the desired processing unit (CPU or GPU) several instances of the associated processor can be created.
-                */
+                 * Once a model is loaded in the desired processing unit (CPU or GPU) several instances of the associated processor can be created.
+                 */
                 DocumentLibrary.LoadModel(modelPath, DocumentModel.MrzReader2A, ProcessingUnit.Cpu);
-
 
                 /*
                  * Init objects.
@@ -117,7 +107,6 @@ namespace id3.Document.Samples.MRZReaderWF
                 Environment.Exit(-1);
             }
         }
-
         private void Form1_FormClosed(object sender, FormClosedEventArgs e)
         {
             if (isCameraRunning)
@@ -134,13 +123,11 @@ namespace id3.Document.Samples.MRZReaderWF
             {
                 StartCaptureCamera();
                 buttonStartCapture.Text = "Stop capture";
-                
             }
             else
             {
                 StopCaptureCamera();
                 buttonStartCapture.Text = "Start capture";
-               
             }
         }
 
@@ -149,7 +136,7 @@ namespace id3.Document.Samples.MRZReaderWF
         {
             Mat frame = new Mat();
             capture = new VideoCapture(0);
-            capture.Open(0);
+            capture.Open(cameraIndex);
 
             int bitmapIndex = 0;
 
@@ -166,7 +153,7 @@ namespace id3.Document.Samples.MRZReaderWF
                     // Create image from the first frame
                     byte[] pixels = new byte[3 * frame.Width * frame.Height];
                     Marshal.Copy(frame.Data, pixels, 0, 3 * frame.Width * frame.Height);
-                    image = Image.FromRawBuffer(pixels, frame.Width, frame.Height, 3 * frame.Width, PixelFormat.Bgr24Bits, PixelFormat.Bgr24Bits);
+                    image = DocumentImage.FromRawBuffer(pixels, frame.Width, frame.Height, 3 * frame.Width, PixelFormat.Bgr24Bits, PixelFormat.Bgr24Bits);
 
                     // Resize for real-time capacity
                     float scale = image.Downscale(maxSize);
@@ -176,8 +163,6 @@ namespace id3.Document.Samples.MRZReaderWF
                     // Detect and read MRZ
                     var result = mrzReader.ReadMrz(image);
                     long trackTime = stopWatch.ElapsedMilliseconds;
-
-
 
                     StringDict decodedDict = new StringDict();
                     bool isMrzValid = false;
@@ -204,6 +189,9 @@ namespace id3.Document.Samples.MRZReaderWF
                     };
 
                     camera.ReportProgress(0, workerProgress);
+
+                    // Release native memory
+                    image.Dispose();
                 }
             }
         }
@@ -217,7 +205,7 @@ namespace id3.Document.Samples.MRZReaderWF
             labelMrzType.Text = workerProgress.MrzType == MrzType.None ? "No MRZ found" : "Found MRZ of type " + workerProgress.MrzType;
             labelMRZ.ForeColor = workerProgress.IsMrzValid ? Color.Green : Color.Red;
 
-            /* Split lines in the MRZ for display */
+            // Split lines in the MRZ for display
             if (workerProgress.MrzType == MrzType.Td1)
             {
                 labelMRZ.Text = workerProgress.Mrz.Substring(0, 30) + "\n"
@@ -240,15 +228,12 @@ namespace id3.Document.Samples.MRZReaderWF
             labelMrzDecode.Text = "Decoded fields :\n";
             if (workerProgress.IsMrzValid)
             {
-              
                 StringDict fieldDict = MrzHelper.Decode(workerProgress.Mrz, workerProgress.MrzType);
-                foreach (string key in fieldDict.GetKeys())
+                foreach (string key in fieldDict.Keys)
                 {
                     labelMrzDecode.Text += (key + " : " + workerProgress.MrzDecodedDict.Get(key)) + '\n';
                 }
-
             }
-
         }
 
         private void Camera_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
@@ -261,7 +246,7 @@ namespace id3.Document.Samples.MRZReaderWF
         private bool IsCameraPlugged()
         {
             capture = new VideoCapture(0);
-            bool ret = capture.Open(0);
+            bool ret = capture.Open(cameraIndex);
             if (ret)
             {
                 capture.Release();
@@ -284,7 +269,6 @@ namespace id3.Document.Samples.MRZReaderWF
                 Thread.Sleep(100);
             }
         }
-
 
         private System.Drawing.Rectangle ConvertRectangle(Rectangle rectangle)
         {

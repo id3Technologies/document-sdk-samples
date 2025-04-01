@@ -1,6 +1,7 @@
 # C/C++ samples
 
-This CMake project provides the following C/C++ samples: 
+This CMake project provides the following C/C++ samples:
+
 * **id3DocumentSampleCLI**
 
 ## Build requirements
@@ -26,26 +27,29 @@ id3 Document SDK needs to check this license before any other operation. You nee
 id3 Document SDK is based on machine learning methods and requires model files to perform image processing operations. Please read the upper README and the SDK documentation (developer guide) to download models.
 
 For this sample you need:
-- document_detector_v1b.id3nn
-- mrz_reader_v2a.id3nn
+
+* document_detector_v2b.id3nn
+* mrz_reader_v2a.id3nn
 
 You can put the models wherever you want on your PC and then fill in the path to your models in the source files:
-```c++    
+
+```c++
 std::string models_dir = "../../../sdk/models/";
 ```
 
-### Documents reference files
+### Documents template files
 
-id3 Document SDK need specific data to process each identity document, which must be loaded based on your needs. Please read the upper README and the SDK documentation (developer guide) to download document reference files.
+id3 Document SDK need specific data to process each identity document, which must be loaded based on your needs. Please read the upper README and the SDK documentation (developer guide) to download document template files.
 
 For this sample you need:
-- alb_id_detection_1b_1.0.0.0.id3dr
+
+* alb_id_detection_1b_2.2.0.0.id3dr
 
 You can put the models wherever you want on your PC and then fill in the path to your models in the source files:
-```c++    
-std::string document_references_dir = "../../../sdk/document_references/";
-```
 
+```c++
+std::string document_templates_dir = "../../../sdk/document_templates/";
+```
 
 ## Linux build steps
 
@@ -67,6 +71,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:../../../../bin/linux/x64
 ### id3DocumentSampleCLI
 
 To build and run **id3DocumentSampleCLI**, use the following command lines:
+
 ```bat
 mkdir build
 cd build
